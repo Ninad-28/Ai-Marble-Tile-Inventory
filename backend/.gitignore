@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+
+# AI / Models
+model_cache/
+ai/fine_tuned_model.pt
+
+# Dataset (too large for GitHub)
+dataset/
+
+# Virtual env
+venv/
+env/
+.venv/
