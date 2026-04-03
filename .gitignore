@@ -1,0 +1,21 @@
+# Python / Backend
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# AI Models & Caches
+backend/model_cache/
+backend/hf_cache/
+*.safetensors
+*.pt
+*.bin
+
+# Node / Frontend (For Phase 5)
+node_modules/
+.next/
+
+# OS Files
+.DS_Store
+Thumbs.db
