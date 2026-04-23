@@ -5,7 +5,7 @@ Upload a photo of any tile → get exact match, shelf location, and stock level 
 
 ## Tech Stack
 - **Backend**: Python, FastAPI, PostgreSQL, pgvector
-- **AI**: OpenCLIP (ViT-B-32), OpenCV
+- **AI**: DinoV2 OpenCV
 - **Frontend**: Next.js, Tailwind CSS
 
 ## Project Structure
