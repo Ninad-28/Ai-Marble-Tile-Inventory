@@ -3,7 +3,13 @@ interface TileResult {
   sku: string;
   name: string;
   confidence: number;
-  location: { aisle: string; rack: string; bin: string };
+  location: {
+    warehouse?: string;
+    aisle: string | null;
+    rack: string | null;
+    bin: string | null;
+    display?: string;
+  };
   stock: { quantity: number; unit: string; is_low: boolean };
   image_url: string;
 }
@@ -28,23 +34,23 @@ export default function TileResultCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border p-5 shadow-sm
-                  ${rank === 0
-                    ? "border-stone-800 ring-2 ring-stone-800"
-                    : "border-stone-200"
-                  }`}
+      className={`bg-white/95 backdrop-blur-sm rounded-2xl border p-5 shadow-md transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl ${
+        rank === 0
+          ? "border-emerald-500 ring-2 ring-emerald-400/50"
+          : "border-stone-200"
+      }`}
     >
       {/* Header Row */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-start">
 
         {/* Tile Image */}
         <div className="w-24 h-24 rounded-lg overflow-hidden
-                        bg-stone-100 flex-shrink-0 border border-stone-200">
+                        bg-stone-100 flex-shrink-0 border border-stone-200 shadow-inner transition-all duration-300 hover:scale-105 hover:shadow-xl">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={result.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-all duration-300 ease-out hover:scale-110"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
                   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'" +
@@ -67,12 +73,12 @@ export default function TileResultCard({
           <div className="flex items-start justify-between mb-1">
             <div>
               {rank === 0 && (
-                <span className="text-xs bg-stone-800 text-white
-                                 px-2 py-0.5 rounded-full mb-1 inline-block">
+                <span className="text-xs font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 text-white
+                                 px-2 py-0.5 rounded-full mb-1 inline-block shadow">
                   Best Match
                 </span>
               )}
-              <p className="font-bold text-stone-800 leading-tight">
+              <p className="font-bold text-stone-800 leading-tight tracking-tight text-lg">
                 {result.name}
               </p>
               <p className="text-stone-400 text-xs">{result.sku}</p>
@@ -92,12 +98,12 @@ export default function TileResultCard({
             </p>
             {result.location?.aisle ? (
               <p className="font-medium text-stone-700 text-xs">
-                Aisle {result.location.aisle} → Rack {result.location.rack}{" "}
-                → Bin {result.location.bin}
+                {result.location.display ||
+                  `${result.location.warehouse || "Warehouse"} | Aisle ${result.location.aisle} -> Rack ${result.location.rack} -> Bin ${result.location.bin}`}
               </p>
             ) : (
-              <p className="text-stone-400 italic text-xs">
-                Location not assigned
+              <p className="text-stone-500 italic text-xs">
+                {result.location?.display || `${result.location?.warehouse || "Warehouse"} | Location pending assignment`}
               </p>
             )}
           </div>

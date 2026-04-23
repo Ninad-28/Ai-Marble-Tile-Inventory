@@ -50,3 +50,23 @@ class Tile(Base):
                                  uselist=False)
     location      = relationship("WarehouseLocation", back_populates="tile",
                                  uselist=False)
+
+    @property
+    def stock_quantity(self):
+        return self.inventory.quantity if self.inventory else 0
+
+    @property
+    def stock_unit(self):
+        return self.inventory.unit if self.inventory else "pieces"
+
+    @property
+    def low_stock(self):
+        if not self.inventory:
+            return False
+        return self.inventory.quantity <= self.inventory.low_stock_threshold
+
+    @property
+    def image_path(self):
+        if self.images:
+            return self.images[0].image_url
+        return None

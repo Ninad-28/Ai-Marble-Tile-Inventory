@@ -44,7 +44,7 @@ export default function DashboardPage() {
           <a href="/dashboard/search"
              className="bg-stone-800 text-white px-5 py-2.5 rounded-lg
                         text-sm font-medium hover:bg-stone-700 transition">
-            🔍 Search a Tile
+            🔍 Search Tile
           </a>
           <a href="/dashboard/tiles"
              className="border border-stone-300 text-stone-700 px-5 py-2.5

@@ -5,7 +5,7 @@ from app.middleware.auth import get_current_admin
 from app.models.inventory import Inventory, WarehouseLocation
 from app.models.tile import Tile
 from app.schemas.inventory import (
-    InventoryUpdate, InventoryOut,
+    InventoryUpdate, InventoryOut, StockUpdate,
     LocationCreate, LocationUpdate, LocationOut
 )
 
@@ -33,6 +33,22 @@ def update_stock(tile_id: int, body: InventoryUpdate,
                  db: Session = Depends(get_db),
                  _=Depends(get_current_admin)):
     inv = db.query(Inventory).filter(Inventory.tile_id == tile_id).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Inventory not found")
+
+    inv.quantity = body.quantity
+    inv.unit = body.unit
+    inv.low_stock_threshold = body.low_stock_threshold
+    db.commit()
+    db.refresh(inv)
+    return inv
+
+# ── Update Stock via POST (support UI endpoint) ───────────
+@router.post("/update-stock", response_model=InventoryOut)
+def update_stock_post(body: StockUpdate,
+                      db: Session = Depends(get_db),
+                      _=Depends(get_current_admin)):
+    inv = db.query(Inventory).filter(Inventory.tile_id == body.tile_id).first()
     if not inv:
         raise HTTPException(status_code=404, detail="Inventory not found")
 

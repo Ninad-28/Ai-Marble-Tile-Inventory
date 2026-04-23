@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from app.schemas.category import CategoryOut, ColorFamilyOut
+from app.schemas.inventory import InventoryOut
 
 class TileCreate(BaseModel):
     sku: str
@@ -58,6 +59,11 @@ class TileOut(BaseModel):
     application: Optional[CategoryOut]
     color_family: Optional[ColorFamilyOut]
     origin: Optional[CategoryOut]
+    inventory: Optional[InventoryOut] = None
+    stock_quantity: int = 0
+    stock_unit: str = "pieces"
+    low_stock: bool = False
+    image_path: Optional[str] = None
     images: list[TileImageOut] = []
 
     class Config:

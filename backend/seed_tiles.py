@@ -13,6 +13,15 @@ from app.models.tile_image import TileImage, TileEmbedding
 from app.models.inventory import Inventory, WarehouseLocation
 from app.models.search_log import SearchLog
 
+# Ensure pgvector extension exists before creating table with vector type
+from sqlalchemy import text
+
+with engine.connect() as conn:
+    try:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+    except Exception as e:
+        print(f"WARNING: pgvector extension not available: {e}")
+
 Base.metadata.create_all(bind=engine)
 
 DATASET_PATH = os.path.join(os.path.dirname(__file__), "dataset", "train")
@@ -52,8 +61,10 @@ def seed_tiles():
         db.add(tile)
         db.flush()
 
-        # Auto create inventory
-        inv = Inventory(tile_id=tile.id, quantity=0, low_stock_threshold=10)
+        # Auto create inventory with realistic stock
+        initial_stock = 20 + (int(number) % 30)
+        inv = Inventory(tile_id=tile.id, quantity=initial_stock,
+                        low_stock_threshold=5)
         db.add(inv)
 
         created += 1
@@ -61,9 +72,9 @@ def seed_tiles():
     db.commit()
     db.close()
 
-    print(f"✅ Created: {created} tiles")
-    print(f"⏭️  Skipped: {skipped} (already existed)")
-    print(f"📦 Total tiles in DB ready for embedding")
+    print(f"Created: {created} tiles")
+    print(f"Skipped: {skipped} (already existed)")
+    print(f"Total tiles in DB ready for embedding")
 
 if __name__ == "__main__":
     seed_tiles()
