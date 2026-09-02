@@ -23,7 +23,7 @@ def seed_admin():
 
     existing = db.query(Admin).filter(Admin.email == "admin@marble.com").first()
     if existing:
-        print("✅ Admin already exists")
+        print("Admin already exists")
         db.close()
         return
 

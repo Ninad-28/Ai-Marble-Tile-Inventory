@@ -5,3 +5,5 @@ Thumbs.db
 # Editors
 .vscode/settings.json
 .idea/
+# Large dataset/archive files
+*.zip

@@ -79,7 +79,7 @@ class TileDataset(Dataset):
                 self.pairs.append((anchor, other_img, 0))
 
         random.shuffle(self.pairs)
-        print(f"✅ Dataset: {len(self.pairs)} pairs from {len(tile_ids)} tiles")
+        print(f"Dataset: {len(self.pairs)} pairs from {len(tile_ids)} tiles")
 
     def __len__(self):
         return len(self.pairs)
@@ -115,7 +115,7 @@ def train():
     # Contrastive loss
     loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.3)
 
-    print(f"\n🚀 Starting fine-tuning for {EPOCHS} epochs...\n")
+    print(f"\nStarting fine-tuning for {EPOCHS} epochs...\n")
 
     for epoch in range(EPOCHS):
         model.train()
@@ -155,7 +155,7 @@ def train():
 
     # Save fine-tuned weights
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
-    print(f"\n✅ Model saved to {MODEL_SAVE_PATH}")
+    print(f"\nModel saved to {MODEL_SAVE_PATH}")
 
 if __name__ == "__main__":
     train()

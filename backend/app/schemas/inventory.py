@@ -16,6 +16,12 @@ class InventoryOut(BaseModel):
     class Config:
         from_attributes = True
 
+class StockUpdate(BaseModel):
+    tile_id: int
+    quantity: int
+    unit: Optional[str] = "pieces"
+    low_stock_threshold: Optional[int] = 10
+
 class LocationCreate(BaseModel):
     tile_id: int
     aisle: str

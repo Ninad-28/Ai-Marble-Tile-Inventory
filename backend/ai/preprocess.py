@@ -3,12 +3,58 @@ import numpy as np
 from PIL import Image
 import io
 
+def enhance_blur_sharpness(img_array: np.ndarray) -> np.ndarray:
+    """
+    Use unsharp masking to enhance details and counteract blur.
+    Helps with blurry or distorted tile images.
+    """
+    gaussian = cv2.GaussianBlur(img_array, (5, 5), 1.0)
+    sharpened = cv2.addWeighted(img_array, 1.5, gaussian, -0.5, 0)
+    return np.clip(sharpened, 0, 255).astype(np.uint8)
+
 def normalize_lighting(img_array: np.ndarray) -> np.ndarray:
-    """Normalize uneven lighting using CLAHE"""
+    """
+    Normalize uneven lighting and handle dark images using CLAHE.
+    Enhanced to work better with both bright and dark conditions.
+    """
     lab = cv2.cvtColor(img_array, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    
+    # Adaptive histogram equalization with higher clip limit for dark images
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     l = clahe.apply(l)
+    
+    # Add slight gamma correction for very dark images
+    mean_brightness = np.mean(l)
+    if mean_brightness < 80:  # Very dark
+        gamma = 1.2
+        inv_gamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** inv_gamma) * 255
+                         for i in np.arange(0, 256)]).astype(np.uint8)
+        l = cv2.LUT(l, table)
+    
+    lab = cv2.merge((l, a, b))
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+def equalize_histogram(img_array: np.ndarray) -> np.ndarray:
+    """Apply histogram equalization to the luminance channel."""
+    ycrcb = cv2.cvtColor(img_array, cv2.COLOR_BGR2YCrCb)
+    y, cr, cb = cv2.split(ycrcb)
+    y_eq = cv2.equalizeHist(y)
+    merged = cv2.merge((y_eq, cr, cb))
+    return cv2.cvtColor(merged, cv2.COLOR_YCrCb2BGR)
+
+def denoise(img_array: np.ndarray) -> np.ndarray:
+    """Noise reduction while preserving edges."""
+    return cv2.fastNlMeansDenoisingColored(img_array, None, 10, 10, 7, 21)
+
+def color_normalization(img_array: np.ndarray) -> np.ndarray:
+    """Normalize colors in LAB space."""
+    lab = cv2.cvtColor(img_array, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    l = cv2.normalize(l, None, 0, 255, cv2.NORM_MINMAX)
+    a = cv2.normalize(a, None, 0, 255, cv2.NORM_MINMAX)
+    b = cv2.normalize(b, None, 0, 255, cv2.NORM_MINMAX)
     lab = cv2.merge((l, a, b))
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
@@ -38,11 +84,10 @@ def resize_for_model(img_array: np.ndarray,
     """Resize to model input size"""
     return cv2.resize(img_array, size, interpolation=cv2.INTER_LANCZOS4)
 
-def preprocess_image(image_input) -> Image.Image:
+def preprocess_image(image_input, mode="db") -> Image.Image:
     """
-    Full preprocessing pipeline.
-    Accepts: file path (str) or bytes
-    Returns: PIL Image ready for model
+    Light preprocessing pipeline.
+    Avoids destroying the marble patterns that DINOv2 needs.
     """
     # Load image
     if isinstance(image_input, (str, bytes)):
@@ -58,9 +103,12 @@ def preprocess_image(image_input) -> Image.Image:
     if img_array is None:
         raise ValueError("Could not load image")
 
-    # Run pipeline
-    img_array = normalize_lighting(img_array)
-    img_array = correct_perspective(img_array)
+    # Run lightweight preprocessing pipeline
+    if mode == "query":
+        # Only use perspective correction for uploaded queries
+        img_array = correct_perspective(img_array)
+        
+    # Resize
     img_array = resize_for_model(img_array)
 
     # Convert BGR → RGB → PIL

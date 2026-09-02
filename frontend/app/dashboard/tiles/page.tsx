@@ -30,6 +30,7 @@ export default function TilesPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError]   = useState("");
+  const [tileImage, setTileImage]   = useState<File | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────
   const fetchTiles = async () => {
@@ -60,18 +61,35 @@ export default function TilesPage() {
     setSubmitting(true);
     setFormError("");
     try {
-      const payload: any = { ...form };
-      // Convert empty strings to null, numbers to int
-      Object.keys(payload).forEach((k) => {
-        if (payload[k] === "") payload[k] = null;
-        else if (
-          k.endsWith("_id") || k.endsWith("_cm") ||
-          k === "price_per_sqm"
-        ) {
-          payload[k] = payload[k] ? Number(payload[k]) : null;
-        }
-      });
-      await api.post("/api/tiles/", payload);
+      if (tileImage) {
+        const fd = new FormData();
+        fd.append("sku", form.sku);
+        fd.append("name", form.name);
+        fd.append("material_id", String(form.material_id));
+        if (form.description) fd.append("description", form.description);
+        [
+          "style_id", "finish_id", "size_format_id", "application_id",
+          "color_family_id", "origin_id", "width_cm", "height_cm",
+          "thickness_cm", "price_per_sqm",
+        ].forEach((k) => {
+          const v = (form as any)[k];
+          if (v !== "") fd.append(k, String(v));
+        });
+        fd.append("image", tileImage);
+        await api.post("/api/tiles/with-image", fd);
+      } else {
+        const payload: any = { ...form };
+        Object.keys(payload).forEach((k) => {
+          if (payload[k] === "") payload[k] = null;
+          else if (
+            k.endsWith("_id") || k.endsWith("_cm") ||
+            k === "price_per_sqm"
+          ) {
+            payload[k] = payload[k] ? Number(payload[k]) : null;
+          }
+        });
+        await api.post("/api/tiles/", payload);
+      }
       setShowForm(false);
       setForm({
         sku: "", name: "", description: "",
@@ -81,6 +99,7 @@ export default function TilesPage() {
         width_cm: "", height_cm: "",
         thickness_cm: "", price_per_sqm: "",
       });
+      setTileImage(null);
       fetchTiles();
     } catch (err: any) {
       setFormError(err.response?.data?.detail || "Failed to add tile");
@@ -216,6 +235,21 @@ export default function TilesPage() {
                   className="w-full border border-stone-300 rounded-lg
                              px-3 py-2 text-sm mt-1 focus:outline-none
                              focus:ring-2 focus:ring-stone-400"
+                />
+              </div>
+
+              {/* Tile Image Upload */}
+              <div className="col-span-2 md:col-span-3">
+                <label className="text-xs font-medium text-stone-600">
+                  Tile Image (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setTileImage(e.target.files?.[0] || null)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm mt-1
+                             file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0
+                             file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
                 />
               </div>
             </div>
