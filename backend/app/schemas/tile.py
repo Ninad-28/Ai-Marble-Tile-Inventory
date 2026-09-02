@@ -60,7 +60,8 @@ class TileOut(BaseModel):
     color_family: Optional[ColorFamilyOut]
     origin: Optional[CategoryOut]
     inventory: Optional[InventoryOut] = None
-    stock_quantity: int = 0
+    stock_quantity: Optional[int] = None
+    stock_status: Optional[str] = None
     stock_unit: str = "pieces"
     low_stock: bool = False
     image_path: Optional[str] = None

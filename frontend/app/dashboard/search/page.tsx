@@ -4,33 +4,68 @@ import api from "@/lib/api";
 import TileResultCard from "@/components/TileResultCard";
 import { Upload, Camera, Loader2 } from "lucide-react";
 
+type SearchResult = {
+  tile_id: number;
+  sku: string;
+  name: string;
+  confidence: number;
+  location: { aisle: string | null; rack: string | null; bin: string | null; warehouse?: string; display?: string };
+  stock: { quantity: number | null; unit: string; is_low: boolean };
+  image_url: string;
+  details?: { material?: { name: string }; finish?: { name: string }; style?: { name: string }; width_cm?: number; height_cm?: number; price_per_sqm?: number };
+};
+
 export default function SearchPage() {
   const [preview, setPreview]   = useState<string | null>(null);
-  const [results, setResults]   = useState<any[]>([]);
+  const [results, setResults]   = useState<SearchResult[]>([]);
   const [loading, setLoading]   = useState(false);
   const [searched, setSearched] = useState(false);
   const [responseMs, setResponseMs] = useState<number | null>(null);
+  const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
     setPreview(URL.createObjectURL(file));
     setResults([]);
     setSearched(false);
+    setError("");
   };
 
   const handleSearch = async () => {
     if (!fileRef.current?.files?.[0]) return;
     setLoading(true);
+    setError("");
     try {
       const form = new FormData();
       form.append("file", fileRef.current.files[0]);
       const res = await api.post("/api/search/image?top_k=3", form);
-      setResults(res.data.results);
+      const matches = await Promise.all(
+        (res.data.results || []).map(async (result: SearchResult) => {
+          try {
+            const detail = await api.get(`/api/tiles/${result.tile_id}`);
+            return {
+              ...result,
+              details: detail.data,
+              stock: detail.data.inventory
+                ? {
+                    quantity: detail.data.inventory.quantity,
+                    unit: detail.data.inventory.unit,
+                    is_low: detail.data.low_stock,
+                  }
+                : { quantity: null, unit: "pieces", is_low: false },
+            };
+          } catch {
+            return result;
+          }
+        }),
+      );
+      setResults(matches);
       setResponseMs(res.data.response_time_ms);
       setSearched(true);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || "Search failed";
-      alert(`Search failed: ${JSON.stringify(msg)}`);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: unknown } }; message?: string };
+      const msg = axiosError.response?.data?.detail || axiosError.message || "Search failed";
+      setError(typeof msg === "string" ? msg : "Search failed. Please try another image.");
     } finally {
       setLoading(false);
     }
@@ -42,8 +77,8 @@ export default function SearchPage() {
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
           Visual Tile Search
         </h1>
-        <p className="text-slate-600 text-base sm:text-lg mb-6">
-          Upload or snap a photo to find the matching tile in inventory. We've Got This!!!😉 
+          <p className="text-slate-600 text-base sm:text-lg mb-6">
+          Upload a tile image to find the closest products in the current inventory.
         </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -120,7 +155,7 @@ export default function SearchPage() {
           {searched && results.length === 0 && (
             <div className="text-center text-stone-400 mt-16">
               <p className="text-5xl mb-3">❌</p>
-              <p>No matches found</p>
+              <p>No strong match found in the current tile inventory.</p>
             </div>
           )}
 
@@ -129,12 +164,14 @@ export default function SearchPage() {
               <p className="text-sm text-cyan-800 font-semibold tracking-wide">
                 Top {results.length} matches found
               </p>
-              <div className="rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 p-4 border border-cyan-100 text-sm font-medium text-cyan-700 shadow-inner">Candidates are ranked by similarity and confidence.</div>
+              <div className="rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 p-4 border border-cyan-100 text-sm font-medium text-cyan-700 shadow-inner">Candidates are ranked by visual similarity.</div>
               {results.map((r, i) => (
                 <TileResultCard key={r.tile_id} result={r} rank={i} />
               ))}
             </div>
           )}
+
+          {error && <p className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</p>}
         </div>
       </div>
     </div>

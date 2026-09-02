@@ -53,7 +53,19 @@ class Tile(Base):
 
     @property
     def stock_quantity(self):
-        return self.inventory.quantity if self.inventory else 0
+        if self.inventory is None:
+            return None
+        return self.inventory.quantity
+
+    @property
+    def stock_status(self):
+        if self.inventory is None:
+            return "INVENTORY_NOT_CONFIGURED"
+        if self.inventory.quantity == 0:
+            return "OUT_OF_STOCK"
+        if self.inventory.quantity <= self.inventory.low_stock_threshold:
+            return "LOW_STOCK"
+        return "IN_STOCK"
 
     @property
     def stock_unit(self):

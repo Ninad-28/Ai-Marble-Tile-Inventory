@@ -6,6 +6,11 @@ from app.database import get_db
 from app.middleware.auth import get_current_admin
 from app.models.search_log import SearchLog
 from app.services.search_service import run_visual_search
+from ai.gatekeeper import validate_tile_image
+
+GATEKEEPER_REJECTION_MESSAGE = (
+    "Please upload a valid marble, tile, or stone surface image."
+)
 
 router = APIRouter(prefix="/api/search", tags=["Visual Search"])
 
@@ -23,6 +28,13 @@ async def search_by_image(
 
         # Read uploaded image bytes
         image_bytes = await file.read()
+
+        gatekeeper_result = validate_tile_image(image_bytes)
+        if not gatekeeper_result["is_tile"]:
+            raise HTTPException(
+                status_code=400,
+                detail=GATEKEEPER_REJECTION_MESSAGE,
+            )
 
         # Run visual search
         search_response = run_visual_search(
@@ -76,6 +88,8 @@ async def search_by_image(
             "validation":      validation
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         import sys

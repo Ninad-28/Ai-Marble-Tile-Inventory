@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Package, LayoutDashboard, LogOut, Boxes } from "lucide-react";
+import { Search, Package, LayoutDashboard, LogOut, Boxes, History } from "lucide-react";
 import { removeToken } from "@/lib/auth";
 import api from "@/lib/api";
 
@@ -10,6 +10,7 @@ const links = [
   { href: "/dashboard/search",    label: "Search Tile", icon: Search },
   { href: "/dashboard/tiles",     label: "Tiles",       icon: Boxes },
   { href: "/dashboard/inventory", label: "Inventory",   icon: Package },
+  { href: "/dashboard/history",  label: "Search History", icon: History },
 ];
 
 export default function Sidebar() {

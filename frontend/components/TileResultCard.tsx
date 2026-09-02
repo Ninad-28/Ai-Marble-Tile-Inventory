@@ -10,8 +10,17 @@ interface TileResult {
     bin: string | null;
     display?: string;
   };
-  stock: { quantity: number; unit: string; is_low: boolean };
+  stock: { quantity: number | null; unit: string; is_low: boolean };
   image_url: string;
+  details?: {
+    material?: { name: string };
+    finish?: { name: string };
+    style?: { name: string };
+    width_cm?: number;
+    height_cm?: number;
+    thickness_cm?: number;
+    price_per_sqm?: number;
+  };
 }
 
 export default function TileResultCard({
@@ -87,8 +96,18 @@ export default function TileResultCard({
               className={`text-sm font-bold px-3 py-1 rounded-full
                           flex-shrink-0 ml-2 ${confidenceColor}`}
             >
-              {result.confidence}%
+              {result.confidence}% similarity
             </span>
+          </div>
+
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-xs text-stone-500">
+            {result.details?.material?.name && <span>{result.details.material.name}</span>}
+            {result.details?.finish?.name && <span>Finish: {result.details.finish.name}</span>}
+            {result.details?.style?.name && <span>Style: {result.details.style.name}</span>}
+            {(result.details?.width_cm || result.details?.height_cm) && (
+              <span>{result.details.width_cm || "?"} x {result.details.height_cm || "?"} cm</span>
+            )}
+            {result.details?.price_per_sqm != null && <span>₹{result.details.price_per_sqm}/sqm</span>}
           </div>
 
           {/* Location */}
@@ -113,16 +132,23 @@ export default function TileResultCard({
       {/* Stock Row */}
       <div className="flex items-center justify-between text-sm mt-3
                       pt-3 border-t border-stone-100">
-        <span className="text-stone-500">📦 Stock</span>
+        <span className="text-stone-500">📦 Inventory</span>
         <span
           className={`font-semibold ${
             result.stock.is_low ? "text-red-500" : "text-green-600"
           }`}
         >
-          {result.stock.quantity} {result.stock.unit}
+          {result.stock.quantity == null ? "Information unavailable" : `${result.stock.quantity} ${result.stock.unit}`}
           {result.stock.is_low && " ⚠️ Low"}
         </span>
       </div>
+
+      <a
+        href={`/dashboard/tiles/${result.tile_id}`}
+        className="mt-4 inline-flex text-sm font-semibold text-cyan-700 hover:text-cyan-900"
+      >
+        View product details →
+      </a>
     </div>
   );
 }
