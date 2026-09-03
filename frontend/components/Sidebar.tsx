@@ -1,15 +1,17 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Package, LayoutDashboard, LogOut, Boxes, History } from "lucide-react";
+import { Search, Package, LayoutDashboard, LogOut, Boxes, History, FileText, BarChart3 } from "lucide-react";
 import { removeToken } from "@/lib/auth";
 import api from "@/lib/api";
 
 const links = [
-  { href: "/dashboard",           label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/dashboard",          label: "Dashboard",   icon: LayoutDashboard },
   { href: "/dashboard/search",    label: "Search Tile", icon: Search },
   { href: "/dashboard/tiles",     label: "Tiles",       icon: Boxes },
   { href: "/dashboard/inventory", label: "Inventory",   icon: Package },
+  { href: "/dashboard/quotations", label: "Quotations", icon: FileText },
+  { href: "/dashboard/analytics", label: "Factory Analytics", icon: BarChart3 },
   { href: "/dashboard/history",  label: "Search History", icon: History },
 ];
 
@@ -46,11 +48,11 @@ export default function Sidebar() {
               key={href}
               href={href}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg
-                          text-sm font-medium transition
-                          ${active
-                            ? "bg-stone-700 text-white"
-                            : "text-stone-400 hover:bg-stone-800 hover:text-white"
-                          }`}
+                        text-sm font-medium transition
+                        ${active
+                          ? "bg-stone-700 text-white"
+                          : "text-stone-400 hover:bg-stone-800 hover:text-white"
+                        }`}
             >
               <Icon size={18} />
               {label}
@@ -64,8 +66,8 @@ export default function Sidebar() {
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-2.5 rounded-lg
-                     text-sm text-stone-400 hover:text-white
-                     hover:bg-stone-800 w-full transition"
+                   text-sm text-stone-400 hover:text-white
+                   hover:bg-stone-800 w-full transition"
         >
           <LogOut size={18} />
           Logout

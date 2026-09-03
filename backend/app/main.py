@@ -3,6 +3,8 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from app.routers import quote
+from app.routers import analytics
 
 from app.database import Base, engine, get_db
 from app.schemas.inventory import StockUpdate
@@ -77,7 +79,9 @@ app.include_router(tiles.public_router)
 app.include_router(inv_router)
 app.include_router(loc_router)
 app.include_router(search.router)
-
+# Add this line alongside your other include_router definitions
+app.include_router(quote.router)
+app.include_router(analytics.router)
 
 @app.on_event("startup")
 def warmup_search_model():
