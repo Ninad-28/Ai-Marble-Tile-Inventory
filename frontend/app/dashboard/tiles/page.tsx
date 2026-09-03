@@ -146,7 +146,7 @@ export default function TilesPage() {
                   required value={form.sku}
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
                   placeholder="e.g. CAR-WHT-001"
-                  className="w-full border border-stone-300 rounded-lg
+                  className="w-full border border-stone-300 rounded-lg text-stone-900 placeholder-stone-500
                              px-3 py-2 text-sm mt-1 focus:outline-none
                              focus:ring-2 focus:ring-stone-400"
                 />
@@ -161,7 +161,7 @@ export default function TilesPage() {
                   required value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Carrara White 60x60"
-                  className="w-full border border-stone-300 rounded-lg
+                  className="w-full border border-stone-300 rounded-lg text-stone-900 placeholder-stone-500
                              px-3 py-2 text-sm mt-1 focus:outline-none
                              focus:ring-2 focus:ring-stone-400"
                 />
@@ -185,13 +185,13 @@ export default function TilesPage() {
                     required={required}
                     value={(form as any)[key]}
                     onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                    className="w-full border border-stone-300 rounded-lg
+                    className="w-full border border-stone-300 rounded-lg text-stone-900
                                px-3 py-2 text-sm mt-1 focus:outline-none
                                focus:ring-2 focus:ring-stone-400 bg-white"
                   >
-                    <option value="">-- Select --</option>
+                    <option value="" className="text-stone-900">-- Select --</option>
                     {(data || []).map((c: Category) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id} className="text-stone-900">{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -214,7 +214,7 @@ export default function TilesPage() {
                     onChange={(e) =>
                       setForm({ ...form, [key]: e.target.value })
                     }
-                    className="w-full border border-stone-300 rounded-lg
+                    className="w-full border border-stone-300 rounded-lg text-stone-900 placeholder-stone-500
                                px-3 py-2 text-sm mt-1 focus:outline-none
                                focus:ring-2 focus:ring-stone-400"
                   />
@@ -232,7 +232,7 @@ export default function TilesPage() {
                     setForm({ ...form, description: e.target.value })
                   }
                   rows={2}
-                  className="w-full border border-stone-300 rounded-lg
+                  className="w-full border border-stone-300 rounded-lg text-stone-900 placeholder-stone-500
                              px-3 py-2 text-sm mt-1 focus:outline-none
                              focus:ring-2 focus:ring-stone-400"
                 />
@@ -285,6 +285,7 @@ export default function TilesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or SKU..."
+          style={{ color: '#000000' }}
           className="border border-stone-300 rounded-lg px-4 py-2
                      text-sm focus:outline-none focus:ring-2
                      focus:ring-stone-400 w-64"
@@ -292,7 +293,7 @@ export default function TilesPage() {
         <select
           value={filterMat}
           onChange={(e) => setFilterMat(e.target.value)}
-          className="border border-stone-300 rounded-lg px-3 py-2
+          className="border border-stone-300 rounded-lg px-3 py-2 text-stone-900
                      text-sm bg-white focus:outline-none
                      focus:ring-2 focus:ring-stone-400"
         >
