@@ -95,7 +95,7 @@ class TileDataset(Dataset):
 def train():
     # Load base CLIP model
     model, _, preprocess = open_clip.create_model_and_transforms(
-        "ViT-B-32", pretrained="openai"
+        "ViT-B-32", pretrained="openai", cache_dir=r"C:\Users\ninad\vscode\marble-ai\backend\model_cache"
     )
     model = model.to(DEVICE)
 

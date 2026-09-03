@@ -153,9 +153,12 @@ export default function SearchPage() {
           )}
 
           {searched && results.length === 0 && (
-            <div className="text-center text-stone-400 mt-16">
-              <p className="text-5xl mb-3">❌</p>
-              <p>No strong match found in the current tile inventory.</p>
+            <div className="text-center text-stone-400 mt-16 max-w-md mx-auto p-6 rounded-2xl bg-stone-50 border border-stone-200 shadow-sm">
+              <p className="text-4xl mb-3">🛡️</p>
+              <h3 className="text-base font-semibold text-stone-700">MobileNetV3 Gatekeeper Filtered</h3>
+              <p className="text-xs text-stone-500 mt-1">
+                Input rejected: Not a recognized marble or stone tile surface. Out-of-distribution images are filtered prior to vector retrieval.
+              </p>
             </div>
           )}
 
