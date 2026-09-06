@@ -50,7 +50,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-stone-300 rounded-lg px-4 py-2.5
-                         focus:outline-none focus:ring-2 focus:ring-stone-400"
+                        text-stone-900 bg-white placeholder-stone-400
+                        focus:outline-none focus:ring-2 focus:ring-stone-400"
               placeholder="admin@marble.com"
               required
             />
@@ -65,7 +66,8 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-stone-300 rounded-lg px-4 py-2.5
-                         focus:outline-none focus:ring-2 focus:ring-stone-400"
+                        text-stone-900 bg-white placeholder-stone-400
+                        focus:outline-none focus:ring-2 focus:ring-stone-400"
               placeholder="••••••••"
               required
             />

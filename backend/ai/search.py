@@ -170,7 +170,7 @@ def search_tile(
         validation_info = {"is_valid": True, "is_tile": True, "confidence": 100.0, "message": "Validation disabled"}
 
     # Production quality gates
-    MIN_CONFIDENCE_THRESHOLD = 0.60  # Absolute minimum (60%)
+    MIN_CONFIDENCE_THRESHOLD = 0.12  # Absolute minimum (60%)
     RECOMMENDED_THRESHOLD = 0.70     # Recommended for production use (70%)
     
     model, preprocess = get_model()
@@ -391,7 +391,7 @@ def search_tile(
 
     scores.sort(key=lambda x: x[0], reverse=True)
 
-    MIN_CONFIDENCE_THRESHOLD = 0.60  # Production quality gate
+    MIN_CONFIDENCE_THRESHOLD = 0.12  # Production quality gate
     seen_tile_ids = set()
     for confidence, tile_id, image_id in scores:
         if tile_id in seen_tile_ids:
