@@ -26,11 +26,27 @@ export default function AnalyticsPage() {
     return <div className="text-center py-20 text-stone-400">Loading factory analytics suite...</div>;
   }
 
-  const aging = data?.stock_aging || { fresh_under_90: 0, medium_90_180: 0, aged_over_180: 0, samples: { fresh: [], medium: [], aged: [] } };
+  const aging = data?.stock_aging || {
+    fresh_under_90: 0,
+    medium_90_180: 0,
+    aged_over_180: 0,
+    samples: { fresh: [], medium: [], aged: [] },
+  };
   const samples = aging.samples || { fresh: [], medium: [], aged: [] };
-  const prodSales = data?.production_vs_sales || { total_produced_sqm: 4500, total_sold_sqm: 3820, efficiency_ratio: "84.9%" };
+  const prodSales = data?.production_vs_sales || {
+    total_produced_sqm: 0,
+    total_sold_sqm: 0,
+    efficiency_ratio: "0%",
+  };
   const topSellers = data?.top_selling_materials || [];
-  const funnel = funnelData?.sales_funnel || { total_visual_searches: 371, quotations_generated: 0, orders_closed: 0, search_to_quote_conversion: "0.0%", quote_to_sale_conversion: "100%", overall_conversion: "0.0%" };
+  const funnel = funnelData?.sales_funnel || {
+    total_visual_searches: 0,
+    quotations_generated: 0,
+    orders_closed: 0,
+    search_to_quote_conversion: "0%",
+    quote_to_sale_conversion: "0%",
+    overall_conversion: "0%",
+  };
   const topClients = funnelData?.top_corporate_clients || [];
 
   return (
@@ -225,13 +241,21 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {topSellers.map((item: any, idx: number) => (
-                <tr key={idx} className="hover:bg-stone-50">
-                  <td className="px-3 py-2.5 font-medium text-stone-800">{item.material}</td>
-                  <td className="px-3 py-2.5 text-right text-stone-600 font-mono">{item.volume_sqm} m²</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-stone-900 font-mono">₹{item.revenue.toLocaleString()}</td>
+              {topSellers.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-3 py-6 text-center text-stone-400 text-sm">
+                    No material stock data yet
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                topSellers.map((item: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-stone-50">
+                    <td className="px-3 py-2.5 font-medium text-stone-800">{item.material}</td>
+                    <td className="px-3 py-2.5 text-right text-stone-600 font-mono">{item.volume_sqm} m²</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-stone-900 font-mono">₹{item.revenue.toLocaleString()}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -250,16 +274,24 @@ export default function AnalyticsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {topClients.map((client: any, idx: number) => (
-                <tr key={idx} className="hover:bg-stone-50">
-                  <td className="px-3 py-2.5">
-                    <p className="font-medium text-stone-800">{client.company}</p>
-                    <p className="text-[10px] text-stone-400">{client.contact}</p>
+              {topClients.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-3 py-6 text-center text-stone-400 text-sm">
+                    No quotations yet
                   </td>
-                  <td className="px-3 py-2.5 text-right text-stone-600 font-mono">{client.total_orders}</td>
-                  <td className="px-3 py-2.5 text-right font-semibold text-stone-900 font-mono">₹{client.revenue.toLocaleString()}</td>
                 </tr>
-              ))}
+              ) : (
+                topClients.map((client: any, idx: number) => (
+                  <tr key={idx} className="hover:bg-stone-50">
+                    <td className="px-3 py-2.5">
+                      <p className="font-medium text-stone-800">{client.company}</p>
+                      <p className="text-[10px] text-stone-400">{client.contact}</p>
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-stone-600 font-mono">{client.total_orders}</td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-stone-900 font-mono">₹{client.revenue.toLocaleString()}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

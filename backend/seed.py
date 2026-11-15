@@ -19,6 +19,7 @@ Base.metadata.create_all(bind=engine)
 
 
 def seed_admin():
+    """Create the default local admin (only via this seed script — not on login)."""
     db = SessionLocal()
 
     existing = db.query(Admin).filter(Admin.email == "admin@marble.com").first()
@@ -39,6 +40,7 @@ def seed_admin():
     print("✅ Admin created successfully")
     print("   Email:    admin@marble.com")
     print("   Password: admin123")
+    print("   (Use /register in the UI to create additional accounts)")
     db.close()
 
 

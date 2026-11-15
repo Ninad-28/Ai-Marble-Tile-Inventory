@@ -2,7 +2,6 @@ import os
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from app.database import get_db
 from app.schemas.quote import QuoteRequest
 from reportlab.lib.pagesizes import letter
@@ -100,10 +99,12 @@ def generate_quote_pdf(data: QuoteRequest, db: Session = Depends(get_db)):
 
     # --- SAVE TO DATABASE ---
     try:
-        db.execute(
-            text("INSERT INTO quotations_history (client_name, company_name, total_amount) VALUES (:c, :comp, :t)"),
-            {"c": data.client_name, "comp": data.company_name, "t": grand_total}
-        )
+        from app.models.quotation import QuotationHistory
+        db.add(QuotationHistory(
+            client_name=data.client_name,
+            company_name=data.company_name,
+            total_amount=grand_total,
+        ))
         db.commit()
         print(f"[SUCCESS] Saved quotation to DB for {data.company_name}: ${grand_total}")
     except Exception as e:

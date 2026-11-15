@@ -12,6 +12,7 @@ class Inventory(Base):
     quantity        = Column(Integer, default=0)
     unit            = Column(String, default="pieces")  # pieces or sqm
     low_stock_threshold = Column(Integer, default=10)
+    restocked_at    = Column(DateTime(timezone=True), server_default=func.now())
     updated_at      = Column(DateTime(timezone=True), onupdate=func.now())
 
     tile            = relationship("Tile", back_populates="inventory")

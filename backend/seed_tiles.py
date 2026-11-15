@@ -52,17 +52,39 @@ def seed_tiles():
             skipped += 1
             continue
 
+        n = int(number)
+        size_presets = [
+            (30, 30, 1.0, 1),
+            (30, 60, 1.0, 2),
+            (60, 60, 1.2, 2),
+            (60, 120, 1.5, 3),
+            (80, 80, 1.5, 3),
+            (120, 240, 2.0, 4),
+        ]
+        w, h, th, size_id = size_presets[n % len(size_presets)]
+
         tile = Tile(
             sku=sku,
             name=name,
-            material_id=1,   # Marble (first material seeded)
-            is_active=True
+            material_id=1 + (n % 9),  # cycle materials 1-9 (skip bogus ids)
+            style_id=1 + (n % 6),
+            finish_id=1 + (n % 6),
+            color_family_id=1 + (n % 10),
+            size_format_id=size_id,
+            application_id=1 + (n % 5),
+            origin_id=1 + (n % 5),
+            width_cm=w,
+            height_cm=h,
+            thickness_cm=th,
+            price_per_sqm=float(18 + (n % 7) * 8),
+            description="Natural stone tile seeded for catalog and visual search testing.",
+            is_active=True,
         )
         db.add(tile)
         db.flush()
 
         # Auto create inventory with realistic stock
-        initial_stock = 20 + (int(number) % 30)
+        initial_stock = 20 + (n % 30)
         inv = Inventory(tile_id=tile.id, quantity=initial_stock,
                         low_stock_threshold=5)
         db.add(inv)

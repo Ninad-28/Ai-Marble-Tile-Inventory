@@ -145,12 +145,16 @@ def list_tiles(
     color_family_id: Optional[int] = Query(None),
     application_id: Optional[int] = Query(None),
     is_active: Optional[bool] = Query(True),
-    search: Optional[str] = Query(None),   # search by name or SKU
+    search: Optional[str] = Query(None),  # name, SKU, color, material, finish, style, dims
     skip: int = Query(0),
     limit: int = Query(50),
     db: Session = Depends(get_db),
     _=Depends(get_current_admin)
 ):
+    from sqlalchemy import or_, and_, cast, String, func
+    import re
+    from app.models.categories import Material, Style, Finish, ColorFamily, SizeFormat
+
     query = db.query(Tile)
 
     if is_active is not None:
@@ -163,18 +167,85 @@ def list_tiles(
         query = query.filter(Tile.color_family_id == color_family_id)
     if application_id:
         query = query.filter(Tile.application_id == application_id)
+
     if search:
-        query = query.filter(
-            Tile.name.ilike(f"%{search}%") | Tile.sku.ilike(f"%{search}%")
+        term = search.strip()
+        like = f"%{term}%"
+        query = (
+            query
+            .outerjoin(Material, Tile.material_id == Material.id)
+            .outerjoin(Style, Tile.style_id == Style.id)
+            .outerjoin(Finish, Tile.finish_id == Finish.id)
+            .outerjoin(ColorFamily, Tile.color_family_id == ColorFamily.id)
+            .outerjoin(SizeFormat, Tile.size_format_id == SizeFormat.id)
         )
 
-    return query.offset(skip).limit(limit).all()
+        filters = [
+            Tile.name.ilike(like),
+            Tile.sku.ilike(like),
+            Material.name.ilike(like),
+            Style.name.ilike(like),
+            Finish.name.ilike(like),
+            ColorFamily.name.ilike(like),
+            SizeFormat.name.ilike(like),
+            cast(Tile.width_cm, String).ilike(like),
+            cast(Tile.height_cm, String).ilike(like),
+            cast(Tile.thickness_cm, String).ilike(like),
+            # "60x60" / "60 x 60" style dimension search
+            func.concat(
+                cast(Tile.width_cm, String), "x", cast(Tile.height_cm, String)
+            ).ilike(like.replace(" ", "")),
+        ]
+
+        dim = re.match(r"^\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*$", term)
+        if dim:
+            w, h = float(dim.group(1)), float(dim.group(2))
+            filters.append(and_(Tile.width_cm == w, Tile.height_cm == h))
+            filters.append(and_(Tile.width_cm == h, Tile.height_cm == w))
+
+        query = query.filter(or_(*filters)).distinct()
+
+    return (
+        query.options(
+            selectinload(Tile.material),
+            selectinload(Tile.style),
+            selectinload(Tile.finish),
+            selectinload(Tile.size_format),
+            selectinload(Tile.application),
+            selectinload(Tile.color_family),
+            selectinload(Tile.origin),
+            selectinload(Tile.images),
+            selectinload(Tile.inventory),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+def _tile_load_options():
+    return [
+        selectinload(Tile.material),
+        selectinload(Tile.style),
+        selectinload(Tile.finish),
+        selectinload(Tile.size_format),
+        selectinload(Tile.application),
+        selectinload(Tile.color_family),
+        selectinload(Tile.origin),
+        selectinload(Tile.images),
+        selectinload(Tile.inventory),
+    ]
+
 
 # ── Get Single Tile ──────────────────────────────────────
 @router.get("/{tile_id}", response_model=TileOut)
 def get_tile(tile_id: int, db: Session = Depends(get_db),
              _=Depends(get_current_admin)):
-    tile = db.query(Tile).filter(Tile.id == tile_id).first()
+    tile = (
+        db.query(Tile)
+        .options(*_tile_load_options())
+        .filter(Tile.id == tile_id)
+        .first()
+    )
     if not tile:
         raise HTTPException(status_code=404, detail="Tile not found")
     return tile
@@ -192,7 +263,12 @@ def update_tile(tile_id: int, body: TileUpdate,
         setattr(tile, field, value)
 
     db.commit()
-    db.refresh(tile)
+    tile = (
+        db.query(Tile)
+        .options(*_tile_load_options())
+        .filter(Tile.id == tile_id)
+        .first()
+    )
     return tile
 
 # ── Deactivate Tile (soft delete) ────────────────────────

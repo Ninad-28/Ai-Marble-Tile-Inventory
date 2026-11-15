@@ -8,6 +8,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 480))
 
+PGVECTOR_ENABLED = os.getenv("PGVECTOR_ENABLED", "false").lower() in ("1", "true", "yes")
+
 GATEKEEPER_ENABLED = os.getenv("GATEKEEPER_ENABLED", "false").lower() in ("1", "true", "yes")
 GATEKEEPER_THRESHOLD = float(os.getenv("GATEKEEPER_THRESHOLD", "0.70"))
 GATEKEEPER_CHECKPOINT_PATH = os.getenv(

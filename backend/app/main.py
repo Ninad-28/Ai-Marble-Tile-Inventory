@@ -10,13 +10,12 @@ from app.database import Base, engine, get_db
 from app.schemas.inventory import StockUpdate
 from app.services.inventory_service import update_stock as update_stock_service
 
-# Import ALL models
-from app.models import admin
-from app.models import categories
-from app.models import tile
-from app.models import tile_image
-from app.models import inventory
-from app.models import search_log
+# Import ALL models (registers metadata for create_all / Alembic)
+from app.models import (  # noqa: F401
+    Admin, Material, Style, Finish, SizeFormat, Application, ColorFamily, Origin,
+    Tile, TileImage, TileEmbedding, Inventory, WarehouseLocation,
+    SearchLog, QuotationHistory,
+)
 
 # Import routers
 from app.routers import auth
@@ -38,7 +37,8 @@ with engine.connect() as connection:
 Base.metadata.create_all(bind=engine)
 
 # Create pgvector index only if extension is available
-pgvector_enabled = os.getenv("PGVECTOR_ENABLED", "false").lower() in ("1", "true", "yes")
+from app.config import PGVECTOR_ENABLED
+pgvector_enabled = PGVECTOR_ENABLED
 if pgvector_enabled:
     with engine.connect() as connection:
         try:
@@ -87,7 +87,11 @@ app.include_router(analytics.router)
 def warmup_search_model():
     """
     Warm up DINO model once at startup so first search request is fast.
+    Set SEARCH_WARMUP_ON_STARTUP=false to skip (e.g. in tests).
     """
+    if os.getenv("SEARCH_WARMUP_ON_STARTUP", "true").lower() not in ("1", "true", "yes"):
+        print("Info: search model warmup skipped")
+        return
     try:
         get_model()
         print("Info: search model warmup complete")

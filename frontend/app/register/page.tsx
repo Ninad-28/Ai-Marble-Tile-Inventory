@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import api, { apiErrorMessage } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import Link from "next/link";
 
@@ -17,12 +17,23 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await api.post("/api/auth/register", { name, email, password });
+      const res = await api.post("/api/auth/register", {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
       setToken(res.data.access_token);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Registration failed"));
     } finally {
       setLoading(false);
     }
@@ -31,16 +42,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🪨</div>
           <h1 className="text-2xl font-bold text-stone-800">Marble AI</h1>
-          <p className="text-stone-500 text-sm mt-1">
-            Create Your Account
-          </p>
+          <p className="text-stone-500 text-sm mt-1">Create Your Account</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
@@ -51,7 +58,10 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
+              autoComplete="name"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg
+                        text-stone-900 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-stone-500"
             />
           </div>
           <div>
@@ -63,7 +73,10 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
+              autoComplete="email"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg
+                        text-stone-900 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-stone-500"
             />
           </div>
           <div>
@@ -75,8 +88,13 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-500"
+              minLength={6}
+              autoComplete="new-password"
+              className="w-full px-3 py-2 border border-stone-300 rounded-lg
+                        text-stone-900 bg-white
+                        focus:outline-none focus:ring-2 focus:ring-stone-500"
             />
+            <p className="text-xs text-stone-400 mt-1">At least 6 characters</p>
           </div>
           {error && (
             <div className="text-red-600 text-sm text-center">{error}</div>
@@ -90,7 +108,6 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {/* Login Link */}
         <div className="text-center mt-6">
           <p className="text-stone-600 text-sm">
             Already have an account?{" "}

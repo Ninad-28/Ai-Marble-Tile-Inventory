@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import api, { apiErrorMessage } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import Link from "next/link";
 
@@ -17,11 +17,14 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/api/auth/login", { email, password });
+      const res = await api.post("/api/auth/login", {
+        email: email.trim(),
+        password,
+      });
       setToken(res.data.access_token);
       router.push("/dashboard");
-    } catch {
-      setError("Invalid email or password");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Invalid email or password"));
     } finally {
       setLoading(false);
     }
@@ -30,7 +33,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🪨</div>
           <h1 className="text-2xl font-bold text-stone-800">Marble AI</h1>
@@ -39,7 +41,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">
@@ -52,7 +53,8 @@ export default function LoginPage() {
               className="w-full border border-stone-300 rounded-lg px-4 py-2.5
                         text-stone-900 bg-white placeholder-stone-400
                         focus:outline-none focus:ring-2 focus:ring-stone-400"
-              placeholder="admin@marble.com"
+              placeholder="you@company.com"
+              autoComplete="email"
               required
             />
           </div>
@@ -69,6 +71,7 @@ export default function LoginPage() {
                         text-stone-900 bg-white placeholder-stone-400
                         focus:outline-none focus:ring-2 focus:ring-stone-400"
               placeholder="••••••••"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -87,10 +90,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Register Link */}
         <div className="text-center mt-6">
           <p className="text-stone-600 text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/register" className="text-stone-800 font-medium hover:underline">
               Register here
             </Link>

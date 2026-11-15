@@ -47,6 +47,13 @@ class TileOut(BaseModel):
     sku: str
     name: str
     description: Optional[str]
+    material_id: int
+    style_id: Optional[int] = None
+    finish_id: Optional[int] = None
+    size_format_id: Optional[int] = None
+    application_id: Optional[int] = None
+    color_family_id: Optional[int] = None
+    origin_id: Optional[int] = None
     width_cm: Optional[float]
     height_cm: Optional[float]
     thickness_cm: Optional[float]

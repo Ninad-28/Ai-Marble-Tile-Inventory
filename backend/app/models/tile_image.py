@@ -1,4 +1,3 @@
-import os
 from sqlalchemy import (
     Column, Integer, String, Boolean,
     DateTime, ForeignKey, Text
@@ -7,8 +6,9 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from app.database import Base
+from app.config import PGVECTOR_ENABLED
 
-use_pgvector = os.getenv("PGVECTOR_ENABLED", "false").lower() in ("1", "true", "yes")
+use_pgvector = PGVECTOR_ENABLED
 
 class TileImage(Base):
     __tablename__ = "tile_images"
