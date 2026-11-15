@@ -82,3 +82,7 @@ class Tile(Base):
         if self.images:
             return self.images[0].image_url
         return None
+
+    @property
+    def qr_code_url(self):
+        return f"/static/qrcodes/tile_{self.id}.png"

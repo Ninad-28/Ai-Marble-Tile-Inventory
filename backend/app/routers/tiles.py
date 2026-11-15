@@ -1,17 +1,17 @@
 import os
+import json
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import selectinload
 from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.middleware.auth import get_current_admin
 from app.models.tile import Tile
 from app.models.inventory import Inventory
 from app.models.tile_image import TileImage, TileEmbedding, use_pgvector
 from app.schemas.tile import TileCreate, TileUpdate, TileOut
+from app.utils.qr_generator import ensure_tile_qr
 from ai.embed import load_model, get_embedding, resolve_model_version, MODEL_VERSION
-import json
 
 router = APIRouter(prefix="/api/tiles", tags=["Tiles"])
 public_router = APIRouter(prefix="/tiles", tags=["Public Tiles"])
@@ -26,23 +26,39 @@ def _get_embedder():
         _embed_model, _embed_processor = load_model()
     return _embed_model, _embed_processor
 
+
+def _tile_load_options():
+    return [
+        selectinload(Tile.material),
+        selectinload(Tile.style),
+        selectinload(Tile.finish),
+        selectinload(Tile.size_format),
+        selectinload(Tile.application),
+        selectinload(Tile.color_family),
+        selectinload(Tile.origin),
+        selectinload(Tile.images),
+        selectinload(Tile.inventory),
+        selectinload(Tile.location),
+    ]
+
+
 # ── Add New Tile ─────────────────────────────────────────
 @router.post("/", response_model=TileOut)
 def create_tile(body: TileCreate, db: Session = Depends(get_db),
                 _=Depends(get_current_admin)):
-    # Check duplicate SKU
     if db.query(Tile).filter(Tile.sku == body.sku).first():
         raise HTTPException(status_code=400, detail="SKU already exists")
 
     tile = Tile(**body.model_dump())
     db.add(tile)
-    db.flush()  # get tile.id before commit
+    db.flush()
 
-    # Auto-create inventory record with 0 stock
     inventory = Inventory(tile_id=tile.id, quantity=0)
     db.add(inventory)
     db.commit()
     db.refresh(tile)
+
+    ensure_tile_qr(tile.id)
     return tile
 
 
@@ -130,12 +146,27 @@ async def create_tile_with_image(
                 )
             )
         except Exception:
-            # Keep tile creation successful even if embedding generation fails.
             pass
 
     db.commit()
     db.refresh(tile)
+
+    ensure_tile_qr(tile.id)
     return tile
+
+
+# ── Batch Generate QR Codes for Existing Tiles ───────────
+@router.post("/generate-all-qr")
+def generate_all_qr_codes(
+    force: bool = Query(False),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_admin),
+):
+    tiles = db.query(Tile).filter(Tile.is_active == True).all()
+    for t in tiles:
+        ensure_tile_qr(t.id, force=force)
+    return {"message": f"Generated QR codes for {len(tiles)} tiles"}
+
 
 # ── List All Tiles (with filters) ───────────────────────
 @router.get("/", response_model=list[TileOut])
@@ -145,7 +176,7 @@ def list_tiles(
     color_family_id: Optional[int] = Query(None),
     application_id: Optional[int] = Query(None),
     is_active: Optional[bool] = Query(True),
-    search: Optional[str] = Query(None),  # name, SKU, color, material, finish, style, dims
+    search: Optional[str] = Query(None),
     skip: int = Query(0),
     limit: int = Query(50),
     db: Session = Depends(get_db),
@@ -191,7 +222,6 @@ def list_tiles(
             cast(Tile.width_cm, String).ilike(like),
             cast(Tile.height_cm, String).ilike(like),
             cast(Tile.thickness_cm, String).ilike(like),
-            # "60x60" / "60 x 60" style dimension search
             func.concat(
                 cast(Tile.width_cm, String), "x", cast(Tile.height_cm, String)
             ).ilike(like.replace(" ", "")),
@@ -205,35 +235,15 @@ def list_tiles(
 
         query = query.filter(or_(*filters)).distinct()
 
-    return (
-        query.options(
-            selectinload(Tile.material),
-            selectinload(Tile.style),
-            selectinload(Tile.finish),
-            selectinload(Tile.size_format),
-            selectinload(Tile.application),
-            selectinload(Tile.color_family),
-            selectinload(Tile.origin),
-            selectinload(Tile.images),
-            selectinload(Tile.inventory),
-        )
+    tiles = (
+        query.options(*_tile_load_options())
         .offset(skip)
         .limit(limit)
         .all()
     )
-
-def _tile_load_options():
-    return [
-        selectinload(Tile.material),
-        selectinload(Tile.style),
-        selectinload(Tile.finish),
-        selectinload(Tile.size_format),
-        selectinload(Tile.application),
-        selectinload(Tile.color_family),
-        selectinload(Tile.origin),
-        selectinload(Tile.images),
-        selectinload(Tile.inventory),
-    ]
+    for t in tiles:
+        ensure_tile_qr(t.id)
+    return tiles
 
 
 # ── Get Single Tile ──────────────────────────────────────
@@ -248,7 +258,9 @@ def get_tile(tile_id: int, db: Session = Depends(get_db),
     )
     if not tile:
         raise HTTPException(status_code=404, detail="Tile not found")
+    ensure_tile_qr(tile.id)
     return tile
+
 
 # ── Update Tile ──────────────────────────────────────────
 @router.put("/{tile_id}", response_model=TileOut)
@@ -269,7 +281,9 @@ def update_tile(tile_id: int, body: TileUpdate,
         .filter(Tile.id == tile_id)
         .first()
     )
+    ensure_tile_qr(tile.id)
     return tile
+
 
 # ── Deactivate Tile (soft delete) ────────────────────────
 @router.delete("/{tile_id}")
@@ -284,18 +298,31 @@ def deactivate_tile(tile_id: int, db: Session = Depends(get_db),
     return {"message": f"Tile {tile.sku} deactivated"}
 
 
-# ── Public endpoints (no auth required) ─────────────────
+# ── Public endpoints (no auth required — used by QR scan page) ──
 @public_router.get("/", response_model=list[TileOut])
 def list_tiles_public(skip: int = 0,
                       limit: int = 100,
                       db: Session = Depends(get_db)):
-    tiles = db.query(Tile).filter(Tile.is_active == True).offset(skip).limit(limit).all()
+    tiles = (
+        db.query(Tile)
+        .options(*_tile_load_options())
+        .filter(Tile.is_active == True)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return tiles
 
 
 @public_router.get("/{tile_id}", response_model=TileOut)
 def get_tile_public(tile_id: int, db: Session = Depends(get_db)):
-    tile = db.query(Tile).filter(Tile.id == tile_id, Tile.is_active == True).first()
+    tile = (
+        db.query(Tile)
+        .options(*_tile_load_options())
+        .filter(Tile.id == tile_id, Tile.is_active == True)
+        .first()
+    )
     if not tile:
         raise HTTPException(status_code=404, detail="Tile not found")
+    ensure_tile_qr(tile.id)
     return tile

@@ -2,13 +2,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
-import { Plus, Pencil, X, Search } from "lucide-react";
+import { Plus, Pencil, X, Search, QrCode, Printer, Download } from "lucide-react";
 import EditTileModal, { EditableTile } from "@/components/EditTileModal";
 
 interface Category { id: number; name: string; }
 type Tile = EditableTile & {
   is_active: boolean;
   images: { image_url: string }[];
+  qr_code_url?: string;
+  location?: { warehouse?: string; aisle?: string; rack?: string; bin?: string } | null;
 };
 
 function dims(tile: Tile) {
@@ -26,6 +28,7 @@ export default function TilesPage() {
   const [search, setSearch] = useState("");
   const [filterMat, setFilterMat] = useState("");
   const [editingTile, setEditingTile] = useState<Tile | null>(null);
+  const [qrTile, setQrTile] = useState<Tile | null>(null);
 
   const [form, setForm] = useState({
     sku: "", name: "", description: "",
@@ -70,6 +73,7 @@ export default function TilesPage() {
     setSubmitting(true);
     setFormError("");
     try {
+      let createdRes;
       if (tileImage) {
         const fd = new FormData();
         fd.append("sku", form.sku);
@@ -85,7 +89,7 @@ export default function TilesPage() {
           if (v !== "") fd.append(k, String(v));
         });
         fd.append("image", tileImage);
-        await api.post("/api/tiles/with-image", fd);
+        createdRes = await api.post("/api/tiles/with-image", fd);
       } else {
         const payload: any = { ...form };
         Object.keys(payload).forEach((k) => {
@@ -94,7 +98,7 @@ export default function TilesPage() {
             payload[k] = payload[k] ? Number(payload[k]) : null;
           }
         });
-        await api.post("/api/tiles/", payload);
+        createdRes = await api.post("/api/tiles/", payload);
       }
       setShowForm(false);
       setForm({
@@ -106,7 +110,8 @@ export default function TilesPage() {
         thickness_cm: "", price_per_sqm: "",
       });
       setTileImage(null);
-      fetchTiles();
+      await fetchTiles();
+      if (createdRes?.data) setQrTile(createdRes.data);
     } catch (err: any) {
       setFormError(err.response?.data?.detail || "Failed to add tile");
     }
@@ -117,6 +122,45 @@ export default function TilesPage() {
     if (!confirm(`Deactivate ${sku}?`)) return;
     await api.delete(`/api/tiles/${id}`);
     fetchTiles();
+  };
+
+  const printQrSticker = (tile: Tile) => {
+    const qrSrc = `http://localhost:8000${tile.qr_code_url || `/static/qrcodes/tile_${tile.id}.png`}`;
+    const locParts = [
+      tile.location?.aisle && `Aisle ${tile.location.aisle}`,
+      tile.location?.rack && `Rack ${tile.location.rack}`,
+      tile.location?.bin && `Bin ${tile.location.bin}`,
+    ].filter(Boolean);
+    const locText = locParts.length > 0 ? locParts.join(" • ") : "Location Unassigned";
+
+    const win = window.open("", "_blank", "width=420,height=520");
+    if (!win) return;
+    win.document.write(`
+      <html>
+        <head>
+          <title>QR Label - ${tile.sku}</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+            .label { border: 2px solid #111; border-radius: 12px; padding: 20px; width: 280px; text-align: center; }
+            .sku { font-family: monospace; font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
+            .name { font-size: 14px; font-weight: 600; color: #222; margin-bottom: 12px; }
+            img { width: 190px; height: 190px; object-fit: contain; }
+            .meta { font-size: 12px; color: #444; margin-top: 10px; }
+            .loc { font-size: 12px; font-weight: bold; margin-top: 6px; padding: 4px 8px; background: #f3f4f6; border-radius: 6px; }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="sku">${tile.sku}</div>
+            <div class="name">${tile.name}</div>
+            <img src="${qrSrc}" onload="window.print(); window.close();" />
+            <div class="meta">${dims(tile)} cm • ${tile.material?.name || "Stone"}</div>
+            <div class="loc">${locText}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    win.document.close();
   };
 
   return (
@@ -294,7 +338,14 @@ export default function TilesPage() {
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => setQrTile(tile)}
+                          className="text-cyan-600 hover:text-cyan-800"
+                          title="View / Print QR Sticker"
+                        >
+                          <QrCode size={16} />
+                        </button>
                         <button
                           onClick={() => setEditingTile(tile)}
                           className="text-stone-400 hover:text-stone-700"
@@ -329,6 +380,51 @@ export default function TilesPage() {
           onClose={() => setEditingTile(null)}
           onSaved={() => fetchTiles()}
         />
+      )}
+
+      {/* QR Code Sticker Modal */}
+      {qrTile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-stone-200 text-center">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-cyan-700 bg-cyan-50 px-2.5 py-1 rounded-full">
+                Slab / Batch QR Label
+              </span>
+              <button onClick={() => setQrTile(null)} className="text-stone-400 hover:text-stone-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="border-2 border-dashed border-stone-300 rounded-xl p-5 my-3 bg-stone-50">
+              <p className="font-mono text-sm font-bold text-stone-700">{qrTile.sku}</p>
+              <p className="text-base font-semibold text-stone-900 mb-3">{qrTile.name}</p>
+              <img
+                src={`http://localhost:8000${qrTile.qr_code_url || `/static/qrcodes/tile_${qrTile.id}.png`}`}
+                alt={`QR ${qrTile.sku}`}
+                className="w-44 h-44 mx-auto rounded-lg border border-stone-200 bg-white p-2"
+              />
+              <p className="text-xs text-stone-500 mt-3">
+                Scan with phone camera for live stock & rack location
+              </p>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <a
+                href={`http://localhost:8000${qrTile.qr_code_url || `/static/qrcodes/tile_${qrTile.id}.png`}`}
+                download={`${qrTile.sku}_QR.png`}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+              >
+                <Download size={14} /> Download PNG
+              </a>
+              <button
+                onClick={() => printQrSticker(qrTile)}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800"
+              >
+                <Printer size={14} /> Print Sticker
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

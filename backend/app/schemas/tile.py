@@ -42,6 +42,15 @@ class TileImageOut(BaseModel):
     class Config:
         from_attributes = True
 
+class TileLocationOut(BaseModel):
+    warehouse: Optional[str] = None
+    aisle: Optional[str] = None
+    rack: Optional[str] = None
+    bin: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class TileOut(BaseModel):
     id: int
     sku: str
@@ -67,11 +76,13 @@ class TileOut(BaseModel):
     color_family: Optional[ColorFamilyOut]
     origin: Optional[CategoryOut]
     inventory: Optional[InventoryOut] = None
+    location: Optional[TileLocationOut] = None
     stock_quantity: Optional[int] = None
     stock_status: Optional[str] = None
     stock_unit: str = "pieces"
     low_stock: bool = False
     image_path: Optional[str] = None
+    qr_code_url: Optional[str] = None
     images: list[TileImageOut] = []
 
     class Config:
